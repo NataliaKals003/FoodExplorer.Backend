@@ -1,0 +1,12 @@
+{
+  "name": "foodexplorer.backend",
+  "version": "1.0.0",
+  "description": "Backend desenvolvido para um menu digital",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Natalia Kals",
+  "license": "ISC"
+}
