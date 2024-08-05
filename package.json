@@ -1,0 +1,20 @@
+{
+  "name": "foodexplorer.backend",
+  "version": "1.0.0",
+  "description": "Backend desenvolvido para um menu digital",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "dev": "nodemon ./src/server.js"
+  },
+  "keywords": [],
+  "author": "Natalia Kals",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
