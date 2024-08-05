@@ -1,8 +1,11 @@
 require("express-async-errors");
+
+const migrationsRun = require("./database/sqlite/migrations");
 const AppError = require("./utils/AppError");
 const express = require('express');
-
 const routes = require("./routes/index");
+
+migrationsRun();
 
 const app = express();
 app.use(express.json());
@@ -25,5 +28,3 @@ app.use((error, request, response, next) => {
 })
 const PORT = 2222;
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
-
