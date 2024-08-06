@@ -22,6 +22,41 @@ class DishesController {
             response.status(500).json({ error: "Erro ao cadastrar prato" });
         }
     }
+
+    async GetOne(request, response) {
+        const { id } = request.params;
+
+        try {
+            const dish = await knex("dishes").where({ id }).first();
+
+            if (!dish) {
+                return response.status(404).json({ error: "Prato não encontrado" });
+            }
+
+            const ingredients = await knex("ingredients")
+                .where({ dish_id: id })
+                .select("id", "name");
+
+            return response.json({
+                ...dish,
+                ingredients
+            });
+        } catch (error) {
+            console.error('Erro ao buscar prato:', error);
+            response.status(500).json({ error: "Erro ao buscar prato" });
+        }
+    }
+
+    async GetAll(request, response) {
+        const { name } = request.query;
+
+        const dishes = await knex("dishes")
+            .whereLike("name", `%${name}%`)
+
+        return response.json(dishes)
+    }
+
+
 }
 
 module.exports = DishesController;

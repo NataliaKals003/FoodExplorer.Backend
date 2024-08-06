@@ -27,7 +27,7 @@ class OrderController {
         }
     }
 
-    async getAll(request, response) {
+    async GetOne(request, response) {
         const { id } = request.params;
 
         try {
@@ -51,6 +51,23 @@ class OrderController {
             console.error('Erro ao buscar pedidos:', error);
             response.status(500).json({ error: "Erro ao buscar pedidos" });
         }
+    }
+
+    async GetAll(request, response) {
+        const { user_id } = request.query;
+
+        const orders = await knex("orders")
+            .where({ user_id })
+
+        return response.json(orders)
+    }
+
+    async delete(request, response) {
+        const { id } = request.params;
+
+        await knex("orders").where({ id }).delete();
+
+        return response.json();
     }
 }
 
