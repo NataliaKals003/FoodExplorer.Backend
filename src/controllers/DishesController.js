@@ -61,14 +61,26 @@ class DishesController {
         }
     }
 
-    async GetAll(request, response) {
-        const { name } = request.query;
+    // async GetAll(request, response) {
+    //     const { name, ingredients } = request.query;
 
-        const dishes = await knex("dishes")
-            .whereLike("name", `%${name}%`)
+    //     let dishes;
 
-        return response.json(dishes)
-    }
+    //     if(ingredients) {
+    //         const filterIngredients = ingredients.split(',').map( ingredient => ingredient.trim())
+
+    //         dishes = await knex("ingredients")
+    //         .whereIn("name", filterIngredients)
+
+    //     }else {
+    //         dishes = await knex("dishes")
+    //             .whereLike("name", `%${name}%`)
+    //     }
+
+
+
+    //     return response.json(dishes)
+    // }
 
 
 }
