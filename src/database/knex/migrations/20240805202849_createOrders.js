@@ -4,8 +4,8 @@ exports.up = knex => knex.schema.createTable("orders", table => {
     table.string("status");
     table.decimal("total_price", 10, 2);
     table.text("observations");
-    table.timestamp("created_at").default(knex.fn.now());
-    table.timestamp("updated_at").default(knex.fn.now());
+    table.timestamp("created_at");
+    table.timestamp("updated_at");
 });
 
 exports.down = knex => knex.schema.dropTable("orders");

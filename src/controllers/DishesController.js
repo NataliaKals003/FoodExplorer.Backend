@@ -3,18 +3,33 @@ const knex = require("../database/knex");
 class DishesController {
     async create(request, response) {
         try {
-            const { name, description, price } = request.body;
+            const { name, description, price, category_id, ingredients } = request.body;
             const priceNumber = parseFloat(price);
 
             if (isNaN(priceNumber)) {
                 return response.status(400).json({ error: "Preço inválido" });
             }
 
+            const categoryExists = await knex("dish_categories").where({ id: category_id }).first();
+
+            if (!categoryExists) {
+                return response.status(400).json({ error: "Categoria não encontrada" });
+            }
+
             const [dish_id] = await knex("dishes").insert({
                 name,
                 description,
-                price: priceNumber
+                price: priceNumber,
+                category_id,
+                created_at: new Date().toISOString()
             });
+
+            const ingredientsData = ingredients.map(ingredient => ({
+                dish_id,
+                name: ingredient
+            }));
+
+            await knex("ingredients").insert(ingredientsData);
 
             response.status(201).json({ dish_id });
         } catch (error) {
@@ -35,7 +50,7 @@ class DishesController {
 
             const ingredients = await knex("ingredients")
                 .where({ dish_id: id })
-                .select("id", "name");
+                .select("name");
 
             return response.json({
                 ...dish,
