@@ -1,8 +1,6 @@
 const knex = require("../database/knex");
-import { dish_categoriesTableName } from "./CategoriesController";
-import { ingredientsTableName } from "./IngredientsController";
 
-export const dishesTableName = "dishes";
+const dishesTableName = "dishes";
 
 class DishesController {
     async create(request, response) {
@@ -14,7 +12,7 @@ class DishesController {
                 return response.status(400).json({ error: "Invalid price" });
             }
 
-            const categoryExists = await knex(dish_categoriesTableName).where({ id: category_id }).first();
+            const categoryExists = await knex("dish_categories").where({ id: category_id }).first();
 
             if (!categoryExists) {
                 return response.status(400).json({ error: "Category not found" });
@@ -32,7 +30,7 @@ class DishesController {
                 name: ingredient
             }));
 
-            await knex(ingredientsTableName).insert(ingredientsData);
+            await knex("ingredients").insert(ingredientsData);
 
             response.status(201).json({ message: "Dish successfully registered!" });
         } catch (error) {
@@ -51,7 +49,7 @@ class DishesController {
                 return response.status(404).json({ error: "Dish not found" });
             }
 
-            const ingredients = await knex(ingredientsTableName)
+            const ingredients = await knex("ingredients")
                 .where({ dish_id: id })
                 .select("name");
 

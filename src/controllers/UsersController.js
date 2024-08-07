@@ -3,7 +3,7 @@ const AppError = require("../utils/AppError");
 const sqliteConnection = require("../database/sqlite");
 const { hash, compare } = require("bcryptjs");
 
-export const usersTableName = "users";
+const usersTableName = "users";
 
 class UsersController {
     async create(request, response) {

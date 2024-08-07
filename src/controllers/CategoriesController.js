@@ -1,6 +1,6 @@
 const knex = require("../database/knex");
 
-export const dish_categoriesTableName = "dish_categories";
+const dish_categoriesTableName = "dish_categories";
 
 class CategoriesController {
 

@@ -1,7 +1,4 @@
 const knex = require("../database/knex");
-const AppError = require("../utils/AppError");
-const { dishesTableName } = require("./DishesController");
-const { usersTableName } = require("./UsersController");
 
 const favouritesTableName = "favourites";
 
@@ -11,8 +8,8 @@ class IngredientsController {
         const { user_id, dish_id } = request.body;
 
         try {
-            const dishExists = await knex(dishesTableName).where({ id: dish_id }).first();
-            const userExists = await knex(usersTableName).where({ id: user_id }).first();
+            const dishExists = await knex("dishes").where({ id: dish_id }).first();
+            const userExists = await knex("users").where({ id: user_id }).first();
 
             if (!dishExists) {
                 return response.status(404).json({ error: "Dish not found" });

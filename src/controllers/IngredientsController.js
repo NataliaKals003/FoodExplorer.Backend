@@ -1,6 +1,6 @@
 const knex = require("../database/knex");
 
-export const ingredientsTableName = "ingredients";
+const ingredientsTableName = "ingredients";
 
 class IngredientsController {
     async GetAll(request, response) {

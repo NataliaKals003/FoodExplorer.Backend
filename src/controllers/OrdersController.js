@@ -1,6 +1,4 @@
 const knex = require("../database/knex");
-const { dishesTableName } = require("./DishesController");
-const { order_dishesTableName } = require("./OrderDishesController");
 
 const ordersTableName = "orders";
 
@@ -60,7 +58,7 @@ class OrderController {
             for (const dish of dishes) {
                 const { dish_id } = dish;
 
-                const dishExists = await knex(dishesTableName).where('id', dish_id).first();
+                const dishExists = await knex("dishes").where('id', dish_id).first();
                 if (!dishExists) {
                     return response.status(400).json({ error: `Dish with id ${dish_id} not found` });
                 }
@@ -89,7 +87,7 @@ class OrderController {
                 return response.status(404).json({ error: "Order not found" });
             }
 
-            const dishes = await knex(order_dishesTableName)
+            const dishes = await knex("order_dishes")
                 .join("dishes", "order_dishes.dish_id", "dishes.id")
                 .where({ order_id: id })
                 .select("dishes.*", "order_dishes.quantity")
