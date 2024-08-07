@@ -1,5 +1,9 @@
 const knex = require("../database/knex");
 const AppError = require("../utils/AppError");
+const { dishesTableName } = require("./DishesController");
+const { usersTableName } = require("./UsersController");
+
+const favouritesTableName = "favourites";
 
 class IngredientsController {
 
@@ -7,35 +11,35 @@ class IngredientsController {
         const { user_id, dish_id } = request.body;
 
         try {
-            const dishExists = await knex("dishes").where({ id: dish_id }).first();
-            const userExists = await knex("users").where({ id: user_id }).first();
+            const dishExists = await knex(dishesTableName).where({ id: dish_id }).first();
+            const userExists = await knex(usersTableName).where({ id: user_id }).first();
 
             if (!dishExists) {
-                return response.status(404).json({ error: "Prato não encontrado" });
+                return response.status(404).json({ error: "Dish not found" });
             }
 
             if (!userExists) {
-                return response.status(404).json({ error: "Usuário não encontrado" });
+                return response.status(404).json({ error: "User not found" });
             }
 
-            const favouriteExists = await knex("favourites")
+            const favouriteExists = await knex(favouritesTableName)
                 .where({ user_id, dish_id })
                 .first();
 
             if (favouriteExists) {
-                return response.status(400).json({ error: "Prato já está nos favoritos" });
+                return response.status(400).json({ error: "Dish is already in favorites" });
             }
 
-            await knex("favourites").insert({
+            await knex(favouritesTableName).insert({
                 user_id,
                 dish_id
             });
 
-            response.status(201).json({ message: "Prato adicionado aos favoritos com sucesso!" });
+            response.status(201).json({ message: "Dish successfully added to favorites!" });
 
         } catch (error) {
-            console.error('Erro ao adicionar prato aos favoritos:', error);
-            response.status(500).json({ error: "Erro ao adicionar prato aos favoritos" });
+            console.error('Error adding dish to favorites:', error);
+            response.status(500).json({ error: "Error adding dish to favorites" });
         }
     }
 
@@ -44,19 +48,19 @@ class IngredientsController {
         const { user_id, dish_id } = request.body;
 
         try {
-            const result = await knex("favourites")
+            const result = await knex(favouritesTableName)
                 .where({ user_id, dish_id })
                 .del();
 
             if (result === 0) {
-                return response.status(404).json({ error: "Favorito não encontrado" });
+                return response.status(404).json({ error: "Favorite not found" });
             }
 
-            return response.status(200).json({ message: "Prato removido dos favoritos com sucesso!" });
+            return response.status(200).json({ message: "Dish successfully removed from favorites!" });
 
         } catch (error) {
-            console.error('Erro ao remover prato dos favoritos:', error);
-            return response.status(500).json({ error: "Erro ao remover prato dos favoritos" });
+            console.error('Error removing dish from favorites:', error);
+            return response.status(500).json({ error: "Error removing dish from favorites" });
         }
     }
 }

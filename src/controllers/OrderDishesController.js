@@ -1,5 +1,7 @@
 const knex = require("../database/knex");
 
+export const order_dishesTableName = "order_dishes";
+
 class OrderDishesController {
     async Details(request, response) {
         const { order_id, dishes } = request.body;
@@ -8,17 +10,17 @@ class OrderDishesController {
             for (const dish of dishes) {
                 const { dish_id, quantity } = dish;
 
-                await knex("order_dishes").insert({
+                await knex(order_dishesTableName).insert({
                     order_id,
                     dish_id,
                     quantity
                 });
             }
-            response.status(201).json({ message: "Pedido adicionado com sucesso!" });
+            response.status(201).json({ message: "Order successfully added!" });
 
         } catch (error) {
-            console.error('Erro ao adicionar pedido:', error);
-            response.status(500).json({ error: "Erro ao adicionar pedido" });
+            console.error("Error adding order:", error);
+            response.status(500).json({ error: "Error adding order" });
         }
     }
 
@@ -26,14 +28,14 @@ class OrderDishesController {
         const { order_id, dishes } = request.body;
 
         try {
-            await knex("order_dishes")
+            await knex(order_dishesTableName)
                 .where({ order_id })
                 .del();
 
             for (const dish of dishes) {
                 const { dish_id, quantity } = dish;
 
-                await knex("order_dishes").insert({
+                await knex(order_dishesTableName).insert({
                     order_id,
                     dish_id,
                     quantity
@@ -41,7 +43,7 @@ class OrderDishesController {
             }
 
         } catch (error) {
-            console.error('Erro ao atualizar detalhes do pedido:', error);
+            console.error("Error updating order details", error);
             throw error;
         }
     }

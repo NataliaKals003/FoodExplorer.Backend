@@ -1,4 +1,8 @@
 const knex = require("../database/knex");
+import { dish_categoriesTableName } from "./CategoriesController";
+import { ingredientsTableName } from "./IngredientsController";
+
+export const dishesTableName = "dishes";
 
 class DishesController {
     async create(request, response) {
@@ -7,16 +11,16 @@ class DishesController {
             const priceNumber = parseFloat(price);
 
             if (isNaN(priceNumber)) {
-                return response.status(400).json({ error: "Preço inválido" });
+                return response.status(400).json({ error: "Invalid price" });
             }
 
-            const categoryExists = await knex("dish_categories").where({ id: category_id }).first();
+            const categoryExists = await knex(dish_categoriesTableName).where({ id: category_id }).first();
 
             if (!categoryExists) {
-                return response.status(400).json({ error: "Categoria não encontrada" });
+                return response.status(400).json({ error: "Category not found" });
             }
 
-            await knex("dishes").insert({
+            await knex(dishesTableName).insert({
                 name,
                 description,
                 price: priceNumber,
@@ -28,12 +32,12 @@ class DishesController {
                 name: ingredient
             }));
 
-            await knex("ingredients").insert(ingredientsData);
+            await knex(ingredientsTableName).insert(ingredientsData);
 
-            response.status(201).json({ message: "Prato cadastrado com sucesso!" });
+            response.status(201).json({ message: "Dish successfully registered!" });
         } catch (error) {
             console.error(error);
-            response.status(500).json({ error: "Erro ao cadastrar prato" });
+            response.status(500).json({ error: "Error registering dish" });
         }
     }
 
@@ -41,13 +45,13 @@ class DishesController {
         const { id } = request.params;
 
         try {
-            const dish = await knex("dishes").where({ id }).first();
+            const dish = await knex(dishesTableName).where({ id }).first();
 
             if (!dish) {
-                return response.status(404).json({ error: "Prato não encontrado" });
+                return response.status(404).json({ error: "Dish not found" });
             }
 
-            const ingredients = await knex("ingredients")
+            const ingredients = await knex(ingredientsTableName)
                 .where({ dish_id: id })
                 .select("name");
 
@@ -56,33 +60,10 @@ class DishesController {
                 ingredients
             });
         } catch (error) {
-            console.error('Erro ao buscar prato:', error);
-            response.status(500).json({ error: "Erro ao buscar prato" });
+            console.error('Error searching for dish:', error);
+            response.status(500).json({ error: "Error searching for dish" });
         }
     }
-
-    // async GetAll(request, response) {
-    //     const { name, ingredients } = request.query;
-
-    //     let dishes;
-
-    //     if(ingredients) {
-    //         const filterIngredients = ingredients.split(',').map( ingredient => ingredient.trim())
-
-    //         dishes = await knex("ingredients")
-    //         .whereIn("name", filterIngredients)
-
-    //     }else {
-    //         dishes = await knex("dishes")
-    //             .whereLike("name", `%${name}%`)
-    //     }
-
-
-
-    //     return response.json(dishes)
-    // }
-
-
 }
 
 module.exports = DishesController;
