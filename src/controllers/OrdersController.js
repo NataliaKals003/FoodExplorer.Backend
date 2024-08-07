@@ -11,7 +11,7 @@ class OrderController {
                 return response.status(400).json({ error: "Preço total inválido" });
             }
 
-            const [order_id] = await knex("orders").insert({
+            await knex("orders").insert({
                 status,
                 total_price: totalPriceNumber,
                 observations,
@@ -20,7 +20,7 @@ class OrderController {
             });
 
             const orderDishesController = new OrderDishesController();
-            await orderDishesController.Details({ body: { order_id, dishes } }, response);
+            await orderDishesController.Details({ body: { dishes } }, response);
 
         } catch (error) {
             console.error('Erro ao criar pedido:', error);

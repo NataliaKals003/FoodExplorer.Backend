@@ -16,7 +16,7 @@ class DishesController {
                 return response.status(400).json({ error: "Categoria não encontrada" });
             }
 
-            const [dish_id] = await knex("dishes").insert({
+            await knex("dishes").insert({
                 name,
                 description,
                 price: priceNumber,
@@ -25,13 +25,12 @@ class DishesController {
             });
 
             const ingredientsData = ingredients.map(ingredient => ({
-                dish_id,
                 name: ingredient
             }));
 
             await knex("ingredients").insert(ingredientsData);
 
-            response.status(201).json({ dish_id });
+            response.status(201).json({ message: "Prato cadastrado com sucesso!" });
         } catch (error) {
             console.error(error);
             response.status(500).json({ error: "Erro ao cadastrar prato" });
