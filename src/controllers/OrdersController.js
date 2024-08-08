@@ -30,7 +30,7 @@ class OrderController {
     }
 
     async update(request, response) {
-        const { id } = request.params;
+        const user_id = request.user.id;
         const { status, total_price, observations, dishes } = request.body;
 
         try {
@@ -40,7 +40,7 @@ class OrderController {
             }
 
             await knex(ordersTableName)
-                .where({ id })
+                .where({ id: user_id })
                 .update({
                     status,
                     total_price: totalPriceNumber,
@@ -48,7 +48,7 @@ class OrderController {
                     updated_at: new Date().toISOString()
                 });
 
-            const orderExists = await knex(ordersTableName).where({ id }).first();
+            const orderExists = await knex(ordersTableName).where({ id: user_id }).first();
             if (!orderExists) {
                 return response.status(400).json({ error: "Order not found" });
             }
@@ -104,7 +104,7 @@ class OrderController {
     }
 
     async GetAll(request, response) {
-        const { user_id } = request.query;
+        const user_id = request.user.id;
 
         const orders = await knex(ordersTableName)
             .where({ user_id })

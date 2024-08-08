@@ -5,7 +5,8 @@ const favouritesTableName = "favourites";
 class IngredientsController {
 
     async create(request, response) {
-        const { user_id, dish_id } = request.body;
+        const { dish_id } = request.body;
+        const user_id = request.user.id;
 
         try {
             const dishExists = await knex("dishes").where({ id: dish_id }).first();
@@ -42,7 +43,8 @@ class IngredientsController {
 
     async delete(request, response) {
 
-        const { user_id, dish_id } = request.body;
+        const { dish_id } = request.body;
+        const user_id = request.user.id;
 
         try {
             const result = await knex(favouritesTableName)
