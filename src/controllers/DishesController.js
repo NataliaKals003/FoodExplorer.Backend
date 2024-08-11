@@ -1,6 +1,4 @@
-const knex = require("../database/knex");
-
-const dishesTableName = "dishes";
+const knex = require('../database/knex');
 
 class DishesController {
     async create(request, response) {
@@ -18,7 +16,7 @@ class DishesController {
                 return response.status(400).json({ error: "Category not found" });
             }
 
-            await knex(dishesTableName).insert({
+            await knex("dishes").insert({
                 name,
                 description,
                 price: priceNumber,
@@ -43,7 +41,7 @@ class DishesController {
         const { id } = request.params;
 
         try {
-            const dish = await knex(dishesTableName).where({ id }).first();
+            const dish = await knex("dishes").where({ id }).first();
 
             if (!dish) {
                 return response.status(404).json({ error: "Dish not found" });
@@ -60,6 +58,52 @@ class DishesController {
         } catch (error) {
             console.error('Error searching for dish:', error);
             response.status(500).json({ error: "Error searching for dish" });
+        }
+    }
+
+    async update(request, response) {
+        const { name, description, price, category_id, ingredients } = request.body;
+        const { id } = request.params;
+
+        try {
+            const PriceNumber = parseFloat(price);
+
+            if (isNaN(PriceNumber)) {
+                return response.status(400).json({ error: "Invalid price" });
+            }
+
+            await knex.transaction(async trx => {
+                // Update dish
+                await trx("dishes")
+                    .where({ id })
+                    .update({
+                        name,
+                        price: PriceNumber,
+                        description,
+                        category_id,
+                        updated_at: new Date().toISOString()
+                    });
+
+                const dishExists = await trx("dishes").where({ id }).first();
+                if (!dishExists) {
+                    return response.status(404).json({ error: "Dish not found" });
+                }
+
+                await trx("ingredients").where({ dish_id: id }).del();
+
+                // Insert new ingredients
+                const ingredientRecords = ingredients.map(ingredient => ({
+                    dish_id: id,
+                    name: ingredient
+                }));
+                await trx("ingredients").insert(ingredientRecords);
+            });
+
+            return response.status(200).json({ message: "Dish updated successfully" });
+
+        } catch (error) {
+            console.error(error);
+            return response.status(500).json({ error: "Internal server error" });
         }
     }
 }

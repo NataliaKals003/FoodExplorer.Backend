@@ -1,6 +1,5 @@
 const knex = require("../database/knex");
-
-const ordersTableName = "orders";
+const OrderDishesController = require("./OrderDishesController");
 
 class OrderController {
     async create(request, response) {
@@ -12,7 +11,7 @@ class OrderController {
                 return response.status(400).json({ error: "Invalid total price" });
             }
 
-            await knex(ordersTableName).insert({
+            const [orderId] = await knex("orders").insert({
                 status,
                 total_price: totalPriceNumber,
                 observations,
@@ -21,7 +20,9 @@ class OrderController {
             });
 
             const orderDishesController = new OrderDishesController();
-            await orderDishesController.Details({ body: { dishes } }, response);
+            await orderDishesController.Details({ body: { order_id: orderId, dishes } }, response);
+
+            return response.status(201).json({ message: "Order successfully created" });
 
         } catch (error) {
             console.error("Error creating order:", error);
@@ -30,7 +31,7 @@ class OrderController {
     }
 
     async update(request, response) {
-        const user_id = request.user.id;
+        const { id } = request.params;
         const { status, total_price, observations, dishes } = request.body;
 
         try {
@@ -39,19 +40,19 @@ class OrderController {
                 return response.status(400).json({ error: "Invalid total price" });
             }
 
-            await knex(ordersTableName)
-                .where({ id: user_id })
+            const orderExists = await knex("orders").where({ id }).first();
+            if (!orderExists) {
+                return response.status(400).json({ error: "Order not found" });
+            }
+
+            await knex("orders")
+                .where({ id })
                 .update({
                     status,
                     total_price: totalPriceNumber,
                     observations,
                     updated_at: new Date().toISOString()
                 });
-
-            const orderExists = await knex(ordersTableName).where({ id: user_id }).first();
-            if (!orderExists) {
-                return response.status(400).json({ error: "Order not found" });
-            }
 
             const orderDishesController = new OrderDishesController();
 
@@ -81,7 +82,7 @@ class OrderController {
         const { id } = request.params;
 
         try {
-            const order = await knex(ordersTableName).where({ id }).first();
+            const order = await knex("orders").where({ id }).first();
 
             if (!order) {
                 return response.status(404).json({ error: "Order not found" });
@@ -98,26 +99,40 @@ class OrderController {
                 dishes
             });
         } catch (error) {
-            console.error('Error fetching orders:', error);
-            response.status(500).json({ error: "Error fetching orders" });
+            console.error('Erro ao buscar pedidos:', error);
+            response.status(500).json({ error: "Erro ao buscar pedidos" });
         }
     }
 
     async GetAll(request, response) {
-        const user_id = request.user.id;
+        const { user_id } = request.query;
 
-        const orders = await knex(ordersTableName)
-            .where({ user_id })
+        try {
+            const orders = await knex("orders")
+                .where({ user_id });
 
-        return response.json(orders)
+            return response.json(orders);
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            return response.status(500).json({ error: "Error fetching orders" });
+        }
     }
 
     async delete(request, response) {
         const { id } = request.params;
 
-        await knex(ordersTableName).where({ id }).delete();
+        try {
+            const result = await knex("orders").where({ id }).del();
 
-        return response.json();
+            if (result === 0) {
+                return response.status(404).json({ error: "Order not found" });
+            }
+
+            return response.status(204).json();
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            return response.status(500).json({ error: "Error deleting order" });
+        }
     }
 }
 

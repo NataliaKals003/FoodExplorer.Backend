@@ -86,15 +86,6 @@ class UsersController {
             response.status(500).json({ error: "Error deleting user" });
         }
     }
-
-    //     const user_id = request.user.id;
-
-    //     await knex(usersTableName).where({ user_id }).delete();
-
-    //     return response.status(200).json({ message: "User successfully deleted" });
-    // }
-
-
 }
 
 module.exports = UsersController;
