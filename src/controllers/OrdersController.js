@@ -1,6 +1,8 @@
 const knex = require("../database/knex");
 const OrderDishesController = require("./OrderDishesController");
 
+const OrdersTableName = "orders";
+
 class OrderController {
     async create(request, response) {
         try {
@@ -12,7 +14,7 @@ class OrderController {
                 return response.status(400).json({ error: "Invalid total price" });
             }
 
-            const [orderId] = await knex("orders").insert({
+            const [orderId] = await knex(OrdersTableName).insert({
                 status,
                 total_price: totalPriceNumber,
                 observations,
@@ -21,7 +23,7 @@ class OrderController {
             });
 
             const orderDishesController = new OrderDishesController();
-            await orderDishesController.Details({ body: { order_id: orderId, dishes } }, response);
+            await orderDishesController.details({ body: { order_id: orderId, dishes } }, response);
 
             return response.status(201).json({ message: "Order successfully created" });
 
@@ -41,12 +43,12 @@ class OrderController {
                 return response.status(400).json({ error: "Invalid total price" });
             }
 
-            const orderExists = await knex("orders").where({ id }).first();
+            const orderExists = await knex(OrdersTableName).where({ id }).first();
             if (!orderExists) {
                 return response.status(400).json({ error: "Order not found" });
             }
 
-            await knex("orders")
+            await knex(OrdersTableName)
                 .where({ id })
                 .update({
                     status,
@@ -79,11 +81,11 @@ class OrderController {
         }
     }
 
-    async GetOne(request, response) {
+    async getOne(request, response) {
         const { id } = request.params;
 
         try {
-            const order = await knex("orders").where({ id }).first();
+            const order = await knex(OrdersTableName).where({ id }).first();
 
             if (!order) {
                 return response.status(404).json({ error: "Order not found" });
@@ -100,16 +102,16 @@ class OrderController {
                 dishes
             });
         } catch (error) {
-            console.error('Erro ao buscar pedidos:', error);
-            response.status(500).json({ error: "Erro ao buscar pedidos" });
+            console.error('Error fetching orders:', error);
+            response.status(500).json({ error: "Error fetching orders" });
         }
     }
 
-    async GetAll(request, response) {
+    async getAll(request, response) {
         const user_id = request.user.id
 
         try {
-            const orders = await knex("orders")
+            const orders = await knex(OrdersTableName)
                 .select('id', 'status', 'observations', 'total_price', 'dishes', 'created_at', 'updated_at')
                 .where({ user_id });
 
@@ -124,7 +126,7 @@ class OrderController {
         const { id } = request.params;
 
         try {
-            const result = await knex("orders").where({ id }).del();
+            const result = await knex(OrdersTableName).where({ id }).del();
 
             if (result === 0) {
                 return response.status(404).json({ error: "Order not found" });

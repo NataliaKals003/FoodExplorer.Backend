@@ -1,5 +1,7 @@
 const knex = require('../database/knex');
 
+const DishesTableName = "dishes";
+
 class DishesController {
     async create(request, response) {
         try {
@@ -16,7 +18,7 @@ class DishesController {
                 return response.status(400).json({ error: "Category not found" });
             }
 
-            await knex("dishes").insert({
+            await knex(DishesTableName).insert({
                 name,
                 description,
                 price: priceNumber,
@@ -42,23 +44,23 @@ class DishesController {
         const { id } = request.params;
 
         try {
-            const PriceNumber = parseFloat(price);
+            const priceNumber = parseFloat(price);
 
-            if (isNaN(PriceNumber)) {
+            if (isNaN(priceNumber)) {
                 return response.status(400).json({ error: "Invalid price" });
             }
 
-            const dishExists = await trx("dishes").where({ id }).first();
+            const dishExists = await trx(DishesTableName).where({ id }).first();
             if (!dishExists) {
                 return response.status(404).json({ error: "Dish not found" });
             }
 
             await knex.transaction(async trx => {
-                await trx("dishes")
+                await trx(DishesTableName)
                     .where({ id })
                     .update({
                         name,
-                        price: PriceNumber,
+                        price: priceNumber,
                         description,
                         category_id,
                         updated_at: new Date().toISOString()
@@ -81,11 +83,11 @@ class DishesController {
         }
     }
 
-    async GetOne(request, response) {
+    async getOne(request, response) {
         const { id } = request.params;
 
         try {
-            const dish = await knex("dishes").where({ id }).first();
+            const dish = await knex(DishesTableName).where({ id }).first();
 
             if (!dish) {
                 return response.status(404).json({ error: "Dish not found" });
@@ -105,9 +107,9 @@ class DishesController {
         }
     }
 
-    async GetAll(request, response) {
+    async getAll(request, response) {
         try {
-            const dishes = await knex("dishes")
+            const dishes = await knex(DishesTableName)
                 .select('*');
 
             const ingredients = await knex("ingredients")

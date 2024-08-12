@@ -4,6 +4,6 @@ const IngredientsController = require("../controllers/IngredientsController");
 const ingredientsRoutes = Router();
 const ingredientsController = new IngredientsController();
 
-ingredientsRoutes.get("/", ingredientsController.GetAll);
+ingredientsRoutes.get("/", ingredientsController.getAll);
 
 module.exports = ingredientsRoutes;

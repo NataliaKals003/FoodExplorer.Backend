@@ -12,7 +12,7 @@ const dishesController = new DishesController();
 const dishesImageController = new DishesImageController();
 
 dishesRoutes.post("/", dishesController.create);
-dishesRoutes.get("/:id", dishesController.GetOne);
+dishesRoutes.get("/:id", dishesController.getOne);
 dishesRoutes.patch("/image/:id", upload.single("image"), dishesImageController.update);
 
 module.exports = dishesRoutes;

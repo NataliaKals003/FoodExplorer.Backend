@@ -3,7 +3,7 @@ const knex = require("../database/knex");
 const orderDishesTableName = "order_dishes";
 
 class OrderDishesController {
-    async Details(request, response) {
+    async details(request, response) {
         const { order_id, dishes } = request.body;
 
         try {
