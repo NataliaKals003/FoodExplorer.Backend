@@ -4,7 +4,8 @@ const OrderDishesController = require("./OrderDishesController");
 class OrderController {
     async create(request, response) {
         try {
-            const { status, total_price, observations, user_id, dishes } = request.body;
+            const { status, total_price, observations, dishes } = request.body;
+            const user_id = request.user.id;
 
             const totalPriceNumber = parseFloat(total_price);
             if (isNaN(totalPriceNumber)) {
@@ -105,10 +106,11 @@ class OrderController {
     }
 
     async GetAll(request, response) {
-        const { user_id } = request.query;
+        const user_id = request.user.id
 
         try {
             const orders = await knex("orders")
+                .select('id', 'status', 'observations', 'total_price', 'dishes', 'created_at', 'updated_at')
                 .where({ user_id });
 
             return response.json(orders);

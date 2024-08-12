@@ -37,6 +37,50 @@ class DishesController {
         }
     }
 
+    async update(request, response) {
+        const { name, description, price, category_id, ingredients } = request.body;
+        const { id } = request.params;
+
+        try {
+            const PriceNumber = parseFloat(price);
+
+            if (isNaN(PriceNumber)) {
+                return response.status(400).json({ error: "Invalid price" });
+            }
+
+            const dishExists = await trx("dishes").where({ id }).first();
+            if (!dishExists) {
+                return response.status(404).json({ error: "Dish not found" });
+            }
+
+            await knex.transaction(async trx => {
+                await trx("dishes")
+                    .where({ id })
+                    .update({
+                        name,
+                        price: PriceNumber,
+                        description,
+                        category_id,
+                        updated_at: new Date().toISOString()
+                    });
+
+                await trx("ingredients").where({ dish_id: id }).del();
+
+                const ingredientRecords = ingredients.map(ingredient => ({
+                    dish_id: id,
+                    name: ingredient
+                }));
+                await trx("ingredients").insert(ingredientRecords);
+            });
+
+            return response.status(200).json({ message: "Dish updated successfully" });
+
+        } catch (error) {
+            console.error(error);
+            return response.status(500).json({ error: "Internal server error" });
+        }
+    }
+
     async GetOne(request, response) {
         const { id } = request.params;
 
@@ -61,49 +105,27 @@ class DishesController {
         }
     }
 
-    async update(request, response) {
-        const { name, description, price, category_id, ingredients } = request.body;
-        const { id } = request.params;
-
+    async GetAll(request, response) {
         try {
-            const PriceNumber = parseFloat(price);
+            const dishes = await knex("dishes")
+                .select('*');
 
-            if (isNaN(PriceNumber)) {
-                return response.status(400).json({ error: "Invalid price" });
-            }
+            const ingredients = await knex("ingredients")
+                .select('*');
 
-            await knex.transaction(async trx => {
-                // Update dish
-                await trx("dishes")
-                    .where({ id })
-                    .update({
-                        name,
-                        price: PriceNumber,
-                        description,
-                        category_id,
-                        updated_at: new Date().toISOString()
-                    });
-
-                const dishExists = await trx("dishes").where({ id }).first();
-                if (!dishExists) {
-                    return response.status(404).json({ error: "Dish not found" });
-                }
-
-                await trx("ingredients").where({ dish_id: id }).del();
-
-                // Insert new ingredients
-                const ingredientRecords = ingredients.map(ingredient => ({
-                    dish_id: id,
-                    name: ingredient
-                }));
-                await trx("ingredients").insert(ingredientRecords);
+            const dishesWithIngredients = dishes.map(dish => {
+                const dishIngredients = ingredients.filter(ingredient => ingredient.dish_id === dish.id);
+                return {
+                    ...dish,
+                    ingredients: dishIngredients
+                };
             });
 
-            return response.status(200).json({ message: "Dish updated successfully" });
+            return response.json(dishesWithIngredients);
 
         } catch (error) {
-            console.error(error);
-            return response.status(500).json({ error: "Internal server error" });
+            console.error('Error fetching dishes:', error);
+            return response.status(500).json({ error: "Error fetching dishes" });
         }
     }
 }
