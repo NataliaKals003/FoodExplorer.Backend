@@ -1,6 +1,6 @@
 const knex = require("../database/knex");
 
-const orderDishesTableName = "order_dishes";
+const orderdishesTableName = "order_dishes";
 
 class OrderDishesController {
     async details(request, response) {
@@ -10,7 +10,7 @@ class OrderDishesController {
             for (const dish of dishes) {
                 const { dish_id, quantity } = dish;
 
-                await knex(orderDishesTableName).insert({
+                await knex(orderdishesTableName).insert({
                     order_id,
                     dish_id,
                     quantity
@@ -28,14 +28,14 @@ class OrderDishesController {
         const { order_id, dishes } = request.body;
 
         try {
-            await knex(orderDishesTableName)
+            await knex(orderdishesTableName)
                 .where({ order_id })
                 .del();
 
             for (const dish of dishes) {
                 const { dish_id, quantity } = dish;
 
-                await knex(orderDishesTableName).insert({
+                await knex(orderdishesTableName).insert({
                     order_id,
                     dish_id,
                     quantity

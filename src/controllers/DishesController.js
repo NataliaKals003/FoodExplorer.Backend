@@ -1,6 +1,6 @@
 const knex = require('../database/knex');
 
-const DishesTableName = "dishes";
+const dishesTableName = "dishes";
 
 class DishesController {
     async create(request, response) {
@@ -18,7 +18,7 @@ class DishesController {
                 return response.status(400).json({ error: "Category not found" });
             }
 
-            await knex(DishesTableName).insert({
+            await knex(dishesTableName).insert({
                 name,
                 description,
                 price: priceNumber,
@@ -50,13 +50,13 @@ class DishesController {
                 return response.status(400).json({ error: "Invalid price" });
             }
 
-            const dishExists = await trx(DishesTableName).where({ id }).first();
+            const dishExists = await trx(dishesTableName).where({ id }).first();
             if (!dishExists) {
                 return response.status(404).json({ error: "Dish not found" });
             }
 
             await knex.transaction(async trx => {
-                await trx(DishesTableName)
+                await trx(dishesTableName)
                     .where({ id })
                     .update({
                         name,
@@ -87,7 +87,7 @@ class DishesController {
         const { id } = request.params;
 
         try {
-            const dish = await knex(DishesTableName).where({ id }).first();
+            const dish = await knex(dishesTableName).where({ id }).first();
 
             if (!dish) {
                 return response.status(404).json({ error: "Dish not found" });
@@ -109,7 +109,7 @@ class DishesController {
 
     async getAll(request, response) {
         try {
-            const dishes = await knex(DishesTableName)
+            const dishes = await knex(dishesTableName)
                 .select('*');
 
             const ingredients = await knex("ingredients")

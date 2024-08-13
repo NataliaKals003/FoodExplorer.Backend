@@ -15,7 +15,7 @@ routes.use("/users", usersRoutes);
 routes.use("/orders", ordersRoutes);
 routes.use("/dishes", dishesRoutes);
 routes.use("/ingredients", ingredientsRoutes);
-routes.use("/categories", categoriesRoutes);
+routes.use("/dish_categories", categoriesRoutes);
 routes.use("/favourites", favouritesRoutes);
 
 module.exports = routes;
