@@ -5,7 +5,9 @@ const ensureAuthenticated = require("../middlewares/ensureAuthenticated");
 const ordersRoutes = Router();
 const ordersController = new OrdersController();
 
-ordersRoutes.post("/", ensureAuthenticated, ordersController.create);
+ordersRoutes.use(ensureAuthenticated);
+
+ordersRoutes.post("/", ordersController.create);
 ordersRoutes.put("/:id", ordersController.update);
 ordersRoutes.get("/:id", ordersController.getOne);
 ordersRoutes.get("/", ordersController.getAll);
