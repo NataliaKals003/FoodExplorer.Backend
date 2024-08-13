@@ -1,15 +1,15 @@
 const knex = require("../database/knex");
 
-const ingredientsTableName = "ingredients";
+const IngredientsTableName = "ingredients";
 
 class IngredientsController {
-    async GetAll(request, response) {
+    async getAll(request, response) {
         const { name } = request.query;
 
-        const ingredients = await knex(ingredientsTableName)
+        const ingredients = await knex(IngredientsTableName)
             .whereLike("name", `%${name}%`)
 
-        return response.json(ingredientsTableName)
+        return response.json(ingredients)
     }
 }
 

@@ -4,6 +4,6 @@ const CategoriesController = require("../controllers/CategoriesController");
 const categoriesRoutes = Router();
 const categoriesController = new CategoriesController();
 
-categoriesRoutes.get("/", categoriesController.GetAll);
+categoriesRoutes.get("/", categoriesController.getAll);
 
 module.exports = categoriesRoutes;

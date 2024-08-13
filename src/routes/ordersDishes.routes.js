@@ -4,7 +4,7 @@
 // const ordersDishesRoutes = Router();
 // const orderDishesController = new OrderDishesController();
 
-// ordersDishesRoutes.post("/order-dishes", orderDishesController.Details);
+// ordersDishesRoutes.post("/order-dishes", orderDishesController.details);
 // ordersDishesRoutes.put("/order-dishes", orderDishesController.update);
 
 // module.exports = ordersDishesRoutes;

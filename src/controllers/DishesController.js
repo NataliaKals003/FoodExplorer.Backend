@@ -1,6 +1,6 @@
-const knex = require("../database/knex");
+const knex = require('../database/knex');
 
-const dishesTableName = "dishes";
+const DishesTableName = "dishes";
 
 class DishesController {
     async create(request, response) {
@@ -18,7 +18,7 @@ class DishesController {
                 return response.status(400).json({ error: "Category not found" });
             }
 
-            await knex(dishesTableName).insert({
+            await knex(DishesTableName).insert({
                 name,
                 description,
                 price: priceNumber,
@@ -39,11 +39,55 @@ class DishesController {
         }
     }
 
-    async GetOne(request, response) {
+    async update(request, response) {
+        const { name, description, price, category_id, ingredients } = request.body;
         const { id } = request.params;
 
         try {
-            const dish = await knex(dishesTableName).where({ id }).first();
+            const priceNumber = parseFloat(price);
+
+            if (isNaN(priceNumber)) {
+                return response.status(400).json({ error: "Invalid price" });
+            }
+
+            const dishExists = await trx(DishesTableName).where({ id }).first();
+            if (!dishExists) {
+                return response.status(404).json({ error: "Dish not found" });
+            }
+
+            await knex.transaction(async trx => {
+                await trx(DishesTableName)
+                    .where({ id })
+                    .update({
+                        name,
+                        price: priceNumber,
+                        description,
+                        category_id,
+                        updated_at: new Date().toISOString()
+                    });
+
+                await trx("ingredients").where({ dish_id: id }).del();
+
+                const ingredientRecords = ingredients.map(ingredient => ({
+                    dish_id: id,
+                    name: ingredient
+                }));
+                await trx("ingredients").insert(ingredientRecords);
+            });
+
+            return response.status(200).json({ message: "Dish updated successfully" });
+
+        } catch (error) {
+            console.error(error);
+            return response.status(500).json({ error: "Internal server error" });
+        }
+    }
+
+    async getOne(request, response) {
+        const { id } = request.params;
+
+        try {
+            const dish = await knex(DishesTableName).where({ id }).first();
 
             if (!dish) {
                 return response.status(404).json({ error: "Dish not found" });
@@ -60,6 +104,30 @@ class DishesController {
         } catch (error) {
             console.error('Error searching for dish:', error);
             response.status(500).json({ error: "Error searching for dish" });
+        }
+    }
+
+    async getAll(request, response) {
+        try {
+            const dishes = await knex(DishesTableName)
+                .select('*');
+
+            const ingredients = await knex("ingredients")
+                .select('*');
+
+            const dishesWithIngredients = dishes.map(dish => {
+                const dishIngredients = ingredients.filter(ingredient => ingredient.dish_id === dish.id);
+                return {
+                    ...dish,
+                    ingredients: dishIngredients
+                };
+            });
+
+            return response.json(dishesWithIngredients);
+
+        } catch (error) {
+            console.error('Error fetching dishes:', error);
+            return response.status(500).json({ error: "Error fetching dishes" });
         }
     }
 }

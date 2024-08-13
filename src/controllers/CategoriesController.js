@@ -4,7 +4,7 @@ const dishCategoriesTableName = "dish_categories";
 
 class CategoriesController {
 
-    async GetAll(request, response) {
+    async getAll(request, response) {
         const { name } = request.query;
 
         const categories = await knex(dishCategoriesTableName)
