@@ -1,35 +1,66 @@
-const knex = require('../database/knex');
-const AppError = require("../utils/AppError");
-const DiskStorage = require("../providers/DiskStorage");
+// const knex = require('../database/knex');
+// const DiskStorage = require("../providers/DiskStorage");
+// const AppError = require("../utils/AppError");
 
-const dishesTableName = "dishes";
+// const dishesTableName = "dishes";
 
-class DishImageController {
-    async update(request, response) {
-        const { id } = request.params;
-        // console.log(`request: ${request}`)
-        const dishImageFilename = request.file.filename;
+// class DishImageController {
+//     async create(request, response) {
+//         const { dish_id } = request.body;
+//         const imageFile = request.file;
 
-        const diskStorage = new DiskStorage();
+//         const diskStorage = new DiskStorage();
+//         // try {
+//         //     const dish = await knex(dishesTableName)
+//         //         .where({ id: dish_id })
+//         //         .first();
 
-        const dish = await knex(dishesTableName)
-            .where('id', id).first();
+//         //     console.log('Recebido:', { imageFile });
 
-        if (!dish) {
-            throw new AppError("Dish not found")
-        }
+//         //     if (!dish) {
+//         //         return response.status(404).json({ message: "Dish not found" });
+//         //     }
 
-        if (dish.dish_image) {
-            await diskStorage.deleteFile(dish.dish_image);
-        }
+//         //     const filename = await diskStorage.saveFile(imageFile.filename);
 
-        const filename = await diskStorage.saveFile(dishImageFilename);
-        dish.dish_image = filename;
+//         //     if (dish.image) {
+//         //         await diskStorage.deleteFile(dish.image);
+//         //     }
 
-        await knex(dishesTableName).where('id', id).update({ dish_image: filename });
+//         //     await knex(dishesTableName)
+//         //         .update({ image: filename })
+//         //         .where({ id: dish_id });
 
-        return response.json({ ...dish, dish_image: filename });
-    }
-}
+//         //     return response.json({ image: filename });
+//         // } catch (error) {
+//         //     return response.status(error.status || 500).json({ message: error.message });
+//         // }
+//     }
 
-module.exports = DishImageController;
+//     async update(request, response) {
+//         const { id } = request.dish;  // Assuming `request.dish` is set by some middleware
+//         const imageFile = request.file.filename;
+//         const diskStorage = new DiskStorage();
+
+//         try {
+//             const dish = await knex(dishesTableName).where({ id }).first();
+
+//             if (!dish) {
+//                 return response.status(404).json({ message: "Dish not found" });
+//             }
+
+//             if (dish.image) {
+//                 await diskStorage.deleteFile(dish.image);
+//             }
+
+//             const filename = await diskStorage.saveFile(imageFile);
+//             await knex(dishesTableName).update({ image: filename }).where({ id });
+
+//             return response.json({ image: filename });
+//         } catch (error) {
+//             return response.status(error.status || 500).json({ message: error.message });
+//         }
+//     }
+// }
+
+// module.exports = new DishImageController();
