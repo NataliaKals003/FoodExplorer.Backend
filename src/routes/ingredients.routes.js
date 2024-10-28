@@ -7,6 +7,6 @@ const ingredientsController = new IngredientsController();
 
 ingredientsRoutes.use(ensureAuthenticated);
 
-ingredientsRoutes.get("/", ingredientsController.getAll);
+// ingredientsRoutes.get("/", ingredientsController.getAll);
 
 module.exports = ingredientsRoutes;

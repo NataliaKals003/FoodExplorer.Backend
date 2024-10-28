@@ -1,6 +1,7 @@
-const knex = require("../database/knex");
+const OrderDishesRepository = require("../repositories/OrderDishesRepository");
+const AppError = require("../utils/AppError");
 
-const orderdishesTableName = "order_dishes";
+const orderDishesRepository = new OrderDishesRepository();
 
 class OrderDishesController {
   async create(request, response) {
@@ -10,37 +11,66 @@ class OrderDishesController {
       for (const dish of dishes) {
         const { dish_id, quantity } = dish;
 
-        await knex(orderdishesTableName).insert({
-          order_id,
-          dish_id,
-          quantity,
-        });
+        newOrder = {
+          orderId: order_id,
+          dishId: dish_id,
+          quantity: quantity,
+        };
+
+        const order = await orderDishesRepository.create(newOrder);
+
+        if (order.id == null) {
+          return response.status(500).json({ error: "Order not created" });
+        }
       }
       response.status(201).json({ message: "Order successfully added!" });
     } catch (error) {
-      console.error("Error adding order:", error);
       response.status(500).json({ error: "Error adding order" });
     }
   }
 
   async update(request, response) {
     const { order_id, dishes } = request.body;
+    const id = request.params.id;
 
     try {
-      await knex(orderdishesTableName).where({ order_id }).del();
+      const existingOrder = await orderDishesRepository.find(id);
+      if (!existingOrder) {
+        throw new AppError("Order not found");
+      }
 
       for (const dish of dishes) {
         const { dish_id, quantity } = dish;
 
-        await knex(orderdishesTableName).insert({
-          order_id,
-          dish_id,
-          quantity,
-        });
+        const updateOrder = {
+          orderId: order_id,
+          dishId: dish_id,
+          quantity: quantity,
+        };
+
+        await orderDishesRepository.update(updateOrder);
       }
     } catch (error) {
-      console.error("Error updating order details", error);
+      console.error("Error updating order", error);
       throw error;
+    }
+  }
+
+  async delete(request, response) {
+    const id = request.params.id;
+    try {
+      const result = await orderDishesRepository.delete(id);
+
+      if (result === 0) {
+        return response.status(404).json({ error: "Order not found" });
+      }
+
+      return response
+        .status(200)
+        .json({ message: "Order successfully deleted!" });
+    } catch (error) {
+      console.error("Error removing order:", error);
+      return response.status(500).json({ error: "Error removing order" });
     }
   }
 }

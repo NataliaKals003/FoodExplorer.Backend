@@ -54,4 +54,4 @@ class DishRepository {
   }
 }
 
-module.exports = DishRepository;
+module.exports = { DishRepository, dishesTableName };

@@ -1,6 +1,6 @@
 const knex = require("../database/knex");
 const AppError = require("../utils/AppError");
-const UserRepository = require("../repositories/UserRepository");
+const { UserRepository } = require("../repositories/UserRepository");
 const { hash, compare } = require("bcryptjs");
 
 class UsersController {

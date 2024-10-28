@@ -1,23 +1,13 @@
-const knex = require("../database/knex");
 const AppError = require("../utils/AppError");
 
 const DiskStorage = require("../providers/DiskStorage");
-const DishRepository = require("../repositories/DishRepository");
+const { DishRepository } = require("../repositories/DishRepository");
 const CategoryRepository = require("../repositories/CategoryRepository");
 const IngredientRepository = require("../repositories/IngredientRepository");
 require("dotenv/config");
+const { mapDishToFrontend } = require("../utils/mappers/dish");
 
-const dishesTableName = "dishes";
 const BASE_URL = process.env.BASE_URL;
-
-const mapDishToFrontend = (databaseDish) => ({
-  id: databaseDish.id,
-  name: databaseDish.name,
-  description: databaseDish.description,
-  image: `${BASE_URL}/files/${databaseDish.dish_image}`,
-  price: databaseDish.price,
-  categoryId: databaseDish.category_id,
-});
 
 const diskStorage = new DiskStorage();
 const dishRepository = new DishRepository();
@@ -176,7 +166,7 @@ class DishesController {
   }
 
   async delete(request, response) {
-    const { id } = request.params;
+    const id = request.params.id;
 
     try {
       const result = await dishRepository.delete(id);

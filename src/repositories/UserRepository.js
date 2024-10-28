@@ -13,6 +13,13 @@ class UserRepository {
     return userWithEmail;
   }
 
+  async findById(userId) {
+    const existingUser = knex(usersTableName)
+      .where({ user_id: userId })
+      .first();
+    return existingUser;
+  }
+
   async create({ name, email, password }) {
     const userId = await knex(usersTableName).insert({
       name,
@@ -30,4 +37,4 @@ class UserRepository {
   }
 }
 
-module.exports = UserRepository;
+module.exports = { UserRepository, usersTableName };

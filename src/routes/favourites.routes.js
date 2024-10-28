@@ -8,6 +8,7 @@ const favouritesController = new FavouritesController();
 favouritesRoutes.use(ensureAuthenticated);
 
 favouritesRoutes.post("/", favouritesController.create);
-favouritesRoutes.delete("/", favouritesController.delete);
+favouritesRoutes.delete("/:dishId", favouritesController.delete);
+favouritesRoutes.get("/", favouritesController.getAll);
 
 module.exports = favouritesRoutes;
