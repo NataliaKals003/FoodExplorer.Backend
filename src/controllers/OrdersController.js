@@ -1,153 +1,115 @@
 const knex = require("../database/knex");
+const AppError = require("../utils/AppError");
 const { OrderRepository } = require("../repositories/OrderRepository");
+
 const { mapOrdersToFrontend } = require("../utils/mappers/order");
 
 const orderRepository = new OrderRepository();
 
 class OrderController {
   async create(request, response) {
-    try {
-      const { status, total_price, observations, dishes } = request.body;
-      const user_id = request.user.id;
-
-      const totalPriceNumber = parseFloat(total_price);
-      if (isNaN(totalPriceNumber)) {
-        return response.status(400).json({ error: "Invalid total price" });
-      }
-
-      const [orderId] = await knex(ordersTableName).insert({
-        status,
-        total_price: totalPriceNumber,
-        observations,
-        user_id,
-        created_at: new Date().toISOString(),
-      });
-
-      const orderDishesController = new OrderDishesController();
-      await orderDishesController.details(
-        { body: { order_id: orderId, dishes } },
-        response
-      );
-
-      return response
-        .status(201)
-        .json({ message: "Order successfully created" });
-    } catch (error) {
-      console.error("Error creating order:", error);
-      response.status(500).json({ error: "Error creating order" });
-    }
-  }
-
-  async update(request, response) {
-    const { id } = request.params;
-    const { status, total_price, observations, dishes } = request.body;
+    const userId = request.user.id;
 
     try {
-      const totalPriceNumber = parseFloat(total_price);
-      if (isNaN(totalPriceNumber)) {
-        return response.status(400).json({ error: "Invalid total price" });
-      }
+      const newOrderId = await orderRepository.create(userId);
 
-      const orderExists = await knex(ordersTableName).where({ id }).first();
-      if (!orderExists) {
-        return response.status(400).json({ error: "Order not found" });
-      }
-
-      await knex(ordersTableName).where({ id }).update({
-        status,
-        total_price: totalPriceNumber,
-        observations,
-        updated_at: new Date().toISOString(),
-      });
-
-      const orderDishesController = new OrderDishesController();
-
-      for (const dish of dishes) {
-        const { dish_id } = dish;
-
-        const dishExists = await knex("dishes").where("id", dish_id).first();
-        if (!dishExists) {
-          return response
-            .status(400)
-            .json({ error: `Dish with id ${dish_id} not found` });
-        }
-      }
-
-      await orderDishesController.update(
-        { body: { order_id: id, dishes } },
-        response
-      );
-
-      if (!response.headersSent) {
-        return response
-          .status(200)
-          .json({ message: "Order successfully updated!" });
-      }
+      return response.status(201).json({ orderId: newOrderId });
     } catch (error) {
-      console.error('Error updating order:"', error);
-      if (!response.headersSent) {
-        return response.status(500).json({ error: "Error updating order" });
-      }
+      console.error("Erro ao criar pedido:", error);
+      return response.status(500).json({ error: "Erro ao criar pedido" });
     }
   }
 
   async getOne(request, response) {
     const { id } = request.params;
-
     try {
-      const order = await knex(ordersTableName).where({ id }).first();
+      const orderDishes = await orderRepository.getOne(id);
 
-      if (!order) {
-        return response.status(404).json({ error: "Order not found" });
+      if (!orderDishes || orderDishes.length === 0) {
+        throw new AppError("Order not found");
       }
 
-      const dishes = await knex("order_dishes")
-        .join("dishes", "order_dishes.dish_id", "dishes.id")
-        .where({ order_id: id })
-        .select("dishes.*", "order_dishes.quantity")
-        .orderBy("dishes.name");
+      const formattedOrder = mapOrdersToFrontend(orderDishes);
 
-      return response.json({
-        ...order,
-        dishes,
-      });
+      response.json(formattedOrder);
     } catch (error) {
-      console.error("Error fetching orders:", error);
-      response.status(500).json({ error: "Error fetching orders" });
+      console.error("Error searching for order:", error);
+      response.status(500).json({ error: "Error searching for order" });
     }
   }
 
   async getAll(request, response) {
     try {
       const userId = request.user.id;
-      const orders = await orderRepository.getAll(userId);
+      const isAdmin = request.user.role === "admin";
 
-      // Group orders by order ID
-      const ordersMap = new Map();
+      const userIdToFilter = isAdmin ? null : userId;
+      const databaseOrdersWithDishes = await orderRepository.getAll(
+        userIdToFilter
+      );
 
-      orders.forEach((order) => {
-        if (!ordersMap.has(order.id)) {
-          // Initialize a new order object if it doesn't exist in the map
-          ordersMap.set(order.id, {
-            id: order.id,
-            status: order.status,
-            dateTime: order.created_at,
-            dishes: [],
-          });
+      if (!databaseOrdersWithDishes || databaseOrdersWithDishes.length == 0) {
+        response.json([]);
+      }
+
+      const mappedOrders = [];
+
+      // Group by `order_id`
+      const grouped = databaseOrdersWithDishes.reduce((acc, order) => {
+        if (!acc[order.id]) {
+          acc[order.id] = [];
         }
-        // Add the dish to the corresponding order
-        ordersMap.get(order.id).dishes.push({
-          quantity: order.quantity,
-          name: order.name,
-        });
-      });
+        acc[order.id].push(order);
+        return acc;
+      }, {});
 
-      const formattedOrders = Array.from(ordersMap.values());
+      // console.log("grouped", grouped);
 
-      response.json(formattedOrders);
+      for (const orderId in grouped) {
+        mappedOrders.push(mapOrdersToFrontend(grouped[orderId]));
+      }
+
+      // ordersWithDishes.forEach((order) => {
+      //   if (!ordersMap.has(order.id)) {
+      //     ordersMap.set(order.id, mapOrdersToFrontend(order));
+      //   }
+      //   // ordersMap.get(order.id).dishes.push({
+      //   //   quantity: order.quantity,
+      //   //   name: order.name,
+      //   // });
+      // });
+
+      // const formattedOrders = Array.from(ordersMap.values());
+
+      response.json(mappedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
       return response.status(500).json({ error: "Error fetching orders" });
+    }
+  }
+
+  async update(request, response) {
+    // const userId = request.user.id;
+    const orderId = request.params.id;
+    const { status } = request.body;
+
+    console.log("status:", status);
+    console.log("orderId:", orderId);
+
+    try {
+      // const orderExists = await orderRepository.find(userId, status);
+
+      // if (!orderExists) {
+      //   response.status(404).json({ error: "Order not found" });
+      // }
+
+      await orderRepository.update(orderId, status);
+      return response
+        .status(200)
+        .json({ message: "Order updated successfully" });
+    } catch (error) {
+      console.error('Error updating order:"', error);
+      return response.status(500).json({ error: "Error updating order" });
     }
   }
 

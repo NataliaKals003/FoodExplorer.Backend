@@ -8,13 +8,21 @@ const uploadConfig = require("./configs/upload");
 require("dotenv/config");
 
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/files", express.static(uploadConfig.UPLOADS_FOLDER));
 
 app.use(routes);
 
+// Middleware de tratamento de erros
 app.use((error, request, response, next) => {
   if (error instanceof AppError) {
     return response.status(error.statusCode).json({
@@ -27,7 +35,7 @@ app.use((error, request, response, next) => {
 
   return response.status(500).json({
     status: "error",
-    message: "Internal serer error",
+    message: "Internal server error",
   });
 });
 

@@ -10,8 +10,6 @@ class IngredientsController {
     const { dishId } = request.body;
     const userId = request.user.id;
 
-    console.log;
-
     try {
       const dishExists = await dishRepository.find(dishId);
       if (!dishExists) {
