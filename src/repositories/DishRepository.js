@@ -1,6 +1,7 @@
 const knex = require("../database/knex");
 
 const dishesTableName = "dishes";
+const ingredientsTableName = "ingredients";
 
 class DishRepository {
   async create(newDish) {
@@ -51,6 +52,21 @@ class DishRepository {
   async delete(dishId) {
     const deleteDish = await knex(dishesTableName).where({ id: dishId }).del();
     return deleteDish;
+  }
+
+  async searchDishes(searchTerm) {
+    try {
+      const results = await knex("dishes")
+        .leftJoin("ingredients", "dishes.id", "ingredients.dish_id")
+        .select("dishes.*")
+        .distinct()
+        .where("dishes.name", "like", `%${searchTerm}%`)
+        .orWhere("ingredients.name", "like", `%${searchTerm}%`);
+
+      return results;
+    } catch (error) {
+      throw new Error("Error fetching search results from the database");
+    }
   }
 }
 

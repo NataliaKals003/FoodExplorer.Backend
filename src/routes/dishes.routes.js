@@ -25,6 +25,7 @@ dishesRoutes.put(
   upload.single("imageFile"),
   dishesController.update
 );
+dishesRoutes.get("/search", dishesController.searchDishes);
 dishesRoutes.get("/", dishesController.getAll);
 dishesRoutes.get("/:id", dishesController.getOne);
 dishesRoutes.delete(

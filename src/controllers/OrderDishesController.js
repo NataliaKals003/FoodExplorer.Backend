@@ -76,9 +76,12 @@ class OrderDishesController {
   }
 
   async delete(request, response) {
-    const id = request.params.id;
+    const { id, dishId } = request.params;
+
+    console.log("Dish ID:", dishId, "Order ID:", id);
+
     try {
-      const result = await orderDishesRepository.delete(id);
+      const result = await orderDishesRepository.delete(id, dishId);
 
       if (result === 0) {
         return response.status(404).json({ error: "Order not found" });
@@ -86,7 +89,7 @@ class OrderDishesController {
 
       return response
         .status(200)
-        .json({ message: "Order successfully deleted!" });
+        .json({ message: "Order successfully removed!" });
     } catch (error) {
       console.error("Error removing order:", error);
       return response.status(500).json({ error: "Error removing order" });

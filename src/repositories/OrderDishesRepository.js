@@ -28,11 +28,11 @@ class OrderDishesRepository {
     });
   }
 
-  async delete(orderId) {
-    const deleteOrder = await knex(orderdishesTableName)
-      .where({ id: orderId })
+  async delete(id, dishId) {
+    const deleteDish = await knex(orderDishesTableName)
+      .where({ order_id: id, dish_id: dishId })
       .del();
-    return deleteOrder;
+    return deleteDish;
   }
 }
 

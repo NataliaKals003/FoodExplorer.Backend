@@ -42,19 +42,19 @@ class OrderController {
     try {
       const userId = request.user.id;
       const isAdmin = request.user.role === "admin";
+      const status = request.query.status; // Get status from query parameters
 
       const userIdToFilter = isAdmin ? null : userId;
       const databaseOrdersWithDishes = await orderRepository.getAll(
-        userIdToFilter
+        userIdToFilter,
+        status // Pass status to the repository
       );
 
       if (!databaseOrdersWithDishes || databaseOrdersWithDishes.length == 0) {
-        response.json([]);
+        return response.json([]);
       }
 
       const mappedOrders = [];
-
-      // Group by `order_id`
       const grouped = databaseOrdersWithDishes.reduce((acc, order) => {
         if (!acc[order.id]) {
           acc[order.id] = [];
@@ -63,23 +63,9 @@ class OrderController {
         return acc;
       }, {});
 
-      // console.log("grouped", grouped);
-
       for (const orderId in grouped) {
         mappedOrders.push(mapOrdersToFrontend(grouped[orderId]));
       }
-
-      // ordersWithDishes.forEach((order) => {
-      //   if (!ordersMap.has(order.id)) {
-      //     ordersMap.set(order.id, mapOrdersToFrontend(order));
-      //   }
-      //   // ordersMap.get(order.id).dishes.push({
-      //   //   quantity: order.quantity,
-      //   //   name: order.name,
-      //   // });
-      // });
-
-      // const formattedOrders = Array.from(ordersMap.values());
 
       response.json(mappedOrders);
     } catch (error) {
@@ -113,22 +99,24 @@ class OrderController {
     }
   }
 
-  async delete(request, response) {
-    const { id } = request.params;
+  // async delete(request, response) {
+  //   const { dishId } = request.params;
+  //   const userId = request.user.id;
+  //   try {
+  //     const result = await orderRepository.delete(userId, dishId);
 
-    try {
-      const result = await knex(ordersTableName).where({ id }).del();
+  //     if (result === 0) {
+  //       return response.status(404).json({ error: "Order not found" });
+  //     }
 
-      if (result === 0) {
-        return response.status(404).json({ error: "Order not found" });
-      }
-
-      return response.status(204).json();
-    } catch (error) {
-      console.error("Error deleting order:", error);
-      return response.status(500).json({ error: "Error deleting order" });
-    }
-  }
+  //     return response
+  //       .status(200)
+  //       .json({ message: "Order successfully removed!" });
+  //   } catch (error) {
+  //     console.error("Error removing order:", error);
+  //     return response.status(500).json({ error: "Error removing order" });
+  //   }
+  // }
 }
 
 module.exports = OrderController;

@@ -28,6 +28,22 @@ class IngredientsController {
     }
   }
 
+  async getAll(request, response) {
+    try {
+      const userId = request.user.id;
+      const favourites = await favouriteRepository.getAll(userId);
+
+      const favouritesWithDishes = favourites?.map((dish) => {
+        return mapDishToFrontend(dish);
+      });
+
+      response.json(favouritesWithDishes);
+    } catch (error) {
+      console.error("Error fetching favourites:", error);
+      response.status(500).json({ error: "Failed to fetch favourites" });
+    }
+  }
+
   async delete(request, response) {
     const { dishId } = request.params;
     const userId = request.user.id;
@@ -49,22 +65,6 @@ class IngredientsController {
     } catch (error) {
       console.error("Error removing favourite:", error);
       return response.status(500).json({ error: "Error removing favourite" });
-    }
-  }
-
-  async getAll(request, response) {
-    try {
-      const userId = request.user.id;
-      const favourites = await favouriteRepository.getAll(userId);
-
-      const favouritesWithDishes = favourites?.map((dish) => {
-        return mapDishToFrontend(dish);
-      });
-
-      response.json(favouritesWithDishes);
-    } catch (error) {
-      console.error("Error fetching favourites:", error);
-      response.status(500).json({ error: "Failed to fetch favourites" });
     }
   }
 }

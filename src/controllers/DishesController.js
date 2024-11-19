@@ -6,7 +6,7 @@ const IngredientRepository = require("../repositories/IngredientRepository");
 require("dotenv/config");
 const { mapDishToFrontend } = require("../utils/mappers/dish");
 
-const BASE_URL = process.env.BASE_URL;
+// const BASE_URL = process.env.BASE_URL;
 
 const diskStorage = new DiskStorage();
 const dishRepository = new DishRepository();
@@ -180,6 +180,28 @@ class DishesController {
     } catch (error) {
       console.error("Error removing dish:", error);
       return response.status(500).json({ error: "Error removing dish" });
+    }
+  }
+
+  async searchDishes(request, response) {
+    const searchTerm = request.query.q;
+    console.log("resposta", searchTerm);
+
+    if (!searchTerm) {
+      return response.status(400).json({ error: "Search term is required" });
+    }
+
+    try {
+      const results = await dishRepository.searchDishes(searchTerm);
+
+      if (results.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      response.json(results);
+    } catch (error) {
+      console.error("Error searching for dish:", error);
+      response.status(500).json({ message: "Internal server error" });
     }
   }
 }

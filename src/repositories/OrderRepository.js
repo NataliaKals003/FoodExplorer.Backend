@@ -17,7 +17,7 @@ class OrderRepository {
       .returning("id");
   }
 
-  async getAll(userId) {
+  async getAll(userId, status) {
     try {
       const query = knex(ordersTableName)
         .join(
@@ -38,14 +38,21 @@ class OrderRepository {
           `${ordersTableName}.created_at`,
           `${ordersTableName}.updated_at`,
           `${dishesTableName}.name`,
+          `${dishesTableName}.dish_image`,
+          `${dishesTableName}.price`,
           `${orderDishesTableName}.dish_id`,
           `${orderDishesTableName}.quantity`
         )
         .orderBy(`${ordersTableName}.created_at`);
 
-      // Add conditionally user filter
+      // Add user filter if `userId` is provided
       if (userId) {
         query.where(`${ordersTableName}.user_id`, userId);
+      }
+
+      // Add status filter if `status` is provided
+      if (status) {
+        query.where(`${ordersTableName}.status`, status);
       }
 
       const orders = await query;
@@ -113,6 +120,13 @@ class OrderRepository {
       return response.status(500).json({ error: "Error for update order" });
     }
   }
+
+  // async delete(userId, dishId) {
+  //   const deleteDish = await knex(ordersTableName)
+  //     .where({ user_id: userId, dish_id: dishId })
+  //     .del();
+  //   return deleteDish;
+  // }
 }
 
 module.exports = { OrderRepository, ordersTableName };

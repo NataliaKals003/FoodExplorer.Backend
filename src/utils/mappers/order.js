@@ -9,6 +9,7 @@ const mapOrdersToFrontend = (databaseOrderWithDishes) => {
   databaseOrderWithDishes.forEach((item) => {
     totalPrice += item.quantity * item.price;
     dishes.push({
+      dishId: item.dish_id,
       quantity: item.quantity,
       name: item.name,
       price: item.price,
@@ -16,6 +17,7 @@ const mapOrdersToFrontend = (databaseOrderWithDishes) => {
     });
   });
 
+  console.log("totalPrice", totalPrice);
   totalPrice = parseFloat(totalPrice.toFixed(2));
 
   return {
