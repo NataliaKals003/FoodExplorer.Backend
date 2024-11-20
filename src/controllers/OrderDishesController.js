@@ -15,13 +15,17 @@ class OrderDishesController {
     const userId = request.user.id;
 
     try {
-      // Verificar se o dish existe
       const dishExists = await dishRepository.find(dishId);
       if (!dishExists) {
         return response.status(404).json({ error: "Dish not found" });
       }
 
-      // Verifica se order existe
+      if (quantity <= 0) {
+        return response
+          .status(400)
+          .json({ error: "Quantity must be greater than 0" });
+      }
+
       const existingPendingOrder = await orderRepository.find(
         userId,
         "Pending"
@@ -35,11 +39,27 @@ class OrderDishesController {
         orderId = newOrder.id;
       }
 
-      await orderDishesRepository.create(dishId, orderId, quantity);
+      const existingDishInOrder =
+        await orderDishesRepository.findByDishAndOrder(orderId, dishId);
 
-      return response
-        .status(201)
-        .json({ message: "Dish successfully added to order!" });
+      if (existingDishInOrder) {
+        // If dish exists, update the quantity
+        const updatedQuantity = existingDishInOrder.quantity + quantity;
+        await orderDishesRepository.updateQuantity(
+          orderId,
+          dishId,
+          updatedQuantity
+        );
+        return response
+          .status(200)
+          .json({ message: "Dish quantity updated in the order!" });
+      } else {
+        await orderDishesRepository.create(dishId, orderId, quantity);
+
+        return response
+          .status(201)
+          .json({ message: "Dish successfully added to order!" });
+      }
     } catch (error) {
       console.error("Error adding dish to order:", error);
       return response

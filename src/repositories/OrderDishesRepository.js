@@ -34,6 +34,18 @@ class OrderDishesRepository {
       .del();
     return deleteDish;
   }
+
+  async findByDishAndOrder(orderId, dishId) {
+    return await knex(orderDishesTableName)
+      .where({ order_id: orderId, dish_id: dishId })
+      .first();
+  }
+
+  async updateQuantity(orderId, dishId, quantity) {
+    return await knex(orderDishesTableName)
+      .where({ order_id: orderId, dish_id: dishId })
+      .update({ quantity });
+  }
 }
 
 module.exports = { OrderDishesRepository, orderDishesTableName };
