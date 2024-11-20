@@ -1,143 +1,122 @@
 const knex = require("../database/knex");
-const OrderDishesController = require("./OrderDishesController");
+const AppError = require("../utils/AppError");
+const { OrderRepository } = require("../repositories/OrderRepository");
 
-const OrdersTableName = "orders";
+const { mapOrdersToFrontend } = require("../utils/mappers/order");
+
+const orderRepository = new OrderRepository();
 
 class OrderController {
-    async create(request, response) {
-        try {
-            const { status, total_price, observations, dishes } = request.body;
-            const user_id = request.user.id;
+  async create(request, response) {
+    const userId = request.user.id;
 
-            const totalPriceNumber = parseFloat(total_price);
-            if (isNaN(totalPriceNumber)) {
-                return response.status(400).json({ error: "Invalid total price" });
-            }
+    try {
+      const newOrderId = await orderRepository.create(userId);
 
-            const [orderId] = await knex(OrdersTableName).insert({
-                status,
-                total_price: totalPriceNumber,
-                observations,
-                user_id,
-                created_at: new Date().toISOString()
-            });
-
-            const orderDishesController = new OrderDishesController();
-            await orderDishesController.details({ body: { order_id: orderId, dishes } }, response);
-
-            return response.status(201).json({ message: "Order successfully created" });
-
-        } catch (error) {
-            console.error("Error creating order:", error);
-            response.status(500).json({ error: "Error creating order" });
-        }
+      return response.status(201).json({ orderId: newOrderId });
+    } catch (error) {
+      console.error("Erro ao criar pedido:", error);
+      return response.status(500).json({ error: "Erro ao criar pedido" });
     }
+  }
 
-    async update(request, response) {
-        const { id } = request.params;
-        const { status, total_price, observations, dishes } = request.body;
+  async getOne(request, response) {
+    const { id } = request.params;
+    try {
+      const orderDishes = await orderRepository.getOne(id);
 
-        try {
-            const totalPriceNumber = parseFloat(total_price);
-            if (isNaN(totalPriceNumber)) {
-                return response.status(400).json({ error: "Invalid total price" });
-            }
+      if (!orderDishes || orderDishes.length === 0) {
+        throw new AppError("Order not found");
+      }
 
-            const orderExists = await knex(OrdersTableName).where({ id }).first();
-            if (!orderExists) {
-                return response.status(400).json({ error: "Order not found" });
-            }
+      const formattedOrder = mapOrdersToFrontend(orderDishes);
 
-            await knex(OrdersTableName)
-                .where({ id })
-                .update({
-                    status,
-                    total_price: totalPriceNumber,
-                    observations,
-                    updated_at: new Date().toISOString()
-                });
-
-            const orderDishesController = new OrderDishesController();
-
-            for (const dish of dishes) {
-                const { dish_id } = dish;
-
-                const dishExists = await knex("dishes").where('id', dish_id).first();
-                if (!dishExists) {
-                    return response.status(400).json({ error: `Dish with id ${dish_id} not found` });
-                }
-            }
-
-            await orderDishesController.update({ body: { order_id: id, dishes } }, response);
-
-            if (!response.headersSent) {
-                return response.status(200).json({ message: "Order successfully updated!" });
-            }
-        } catch (error) {
-            console.error('Error updating order:"', error);
-            if (!response.headersSent) {
-                return response.status(500).json({ error: "Error updating order" });
-            }
-        }
+      response.json(formattedOrder);
+    } catch (error) {
+      console.error("Error searching for order:", error);
+      response.status(500).json({ error: "Error searching for order" });
     }
+  }
 
-    async getOne(request, response) {
-        const { id } = request.params;
+  async getAll(request, response) {
+    try {
+      const userId = request.user.id;
+      const isAdmin = request.user.role === "admin";
+      const status = request.query.status; // Get status from query parameters
 
-        try {
-            const order = await knex(OrdersTableName).where({ id }).first();
+      const userIdToFilter = isAdmin ? null : userId;
+      const databaseOrdersWithDishes = await orderRepository.getAll(
+        userIdToFilter,
+        status // Pass status to the repository
+      );
 
-            if (!order) {
-                return response.status(404).json({ error: "Order not found" });
-            }
+      if (!databaseOrdersWithDishes || databaseOrdersWithDishes.length == 0) {
+        return response.json([]);
+      }
 
-            const dishes = await knex("order_dishes")
-                .join("dishes", "order_dishes.dish_id", "dishes.id")
-                .where({ order_id: id })
-                .select("dishes.*", "order_dishes.quantity")
-                .orderBy("dishes.name");
-
-            return response.json({
-                ...order,
-                dishes
-            });
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-            response.status(500).json({ error: "Error fetching orders" });
+      const mappedOrders = [];
+      const grouped = databaseOrdersWithDishes.reduce((acc, order) => {
+        if (!acc[order.id]) {
+          acc[order.id] = [];
         }
+        acc[order.id].push(order);
+        return acc;
+      }, {});
+
+      for (const orderId in grouped) {
+        mappedOrders.push(mapOrdersToFrontend(grouped[orderId]));
+      }
+
+      response.json(mappedOrders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      return response.status(500).json({ error: "Error fetching orders" });
     }
+  }
 
-    async getAll(request, response) {
-        const user_id = request.user.id
+  async update(request, response) {
+    // const userId = request.user.id;
+    const orderId = request.params.id;
+    const { status } = request.body;
 
-        try {
-            const orders = await knex(OrdersTableName)
-                .select('id', 'status', 'observations', 'total_price', 'dishes', 'created_at', 'updated_at')
-                .where({ user_id });
+    console.log("status:", status);
+    console.log("orderId:", orderId);
 
-            return response.json(orders);
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-            return response.status(500).json({ error: "Error fetching orders" });
-        }
+    try {
+      // const orderExists = await orderRepository.find(userId, status);
+
+      // if (!orderExists) {
+      //   response.status(404).json({ error: "Order not found" });
+      // }
+
+      await orderRepository.update(orderId, status);
+      return response
+        .status(200)
+        .json({ message: "Order updated successfully" });
+    } catch (error) {
+      console.error('Error updating order:"', error);
+      return response.status(500).json({ error: "Error updating order" });
     }
+  }
 
-    async delete(request, response) {
-        const { id } = request.params;
+  // async delete(request, response) {
+  //   const { dishId } = request.params;
+  //   const userId = request.user.id;
+  //   try {
+  //     const result = await orderRepository.delete(userId, dishId);
 
-        try {
-            const result = await knex(OrdersTableName).where({ id }).del();
+  //     if (result === 0) {
+  //       return response.status(404).json({ error: "Order not found" });
+  //     }
 
-            if (result === 0) {
-                return response.status(404).json({ error: "Order not found" });
-            }
-
-            return response.status(204).json();
-        } catch (error) {
-            console.error('Error deleting order:', error);
-            return response.status(500).json({ error: "Error deleting order" });
-        }
-    }
+  //     return response
+  //       .status(200)
+  //       .json({ message: "Order successfully removed!" });
+  //   } catch (error) {
+  //     console.error("Error removing order:", error);
+  //     return response.status(500).json({ error: "Error removing order" });
+  //   }
+  // }
 }
 
 module.exports = OrderController;

@@ -1,135 +1,209 @@
-const knex = require('../database/knex');
+const AppError = require("../utils/AppError");
+const DiskStorage = require("../providers/DiskStorage");
+const { DishRepository } = require("../repositories/DishRepository");
+const CategoryRepository = require("../repositories/CategoryRepository");
+const IngredientRepository = require("../repositories/IngredientRepository");
+require("dotenv/config");
+const { mapDishToFrontend } = require("../utils/mappers/dish");
 
-const DishesTableName = "dishes";
+// const BASE_URL = process.env.BASE_URL;
+
+const diskStorage = new DiskStorage();
+const dishRepository = new DishRepository();
+const categoryRepository = new CategoryRepository();
+const ingredientRepository = new IngredientRepository();
 
 class DishesController {
-    async create(request, response) {
-        try {
-            const { name, description, price, category_id, ingredients } = request.body;
-            const priceNumber = parseFloat(price);
+  async create(request, response) {
+    try {
+      const { name, description, price, categoryId } = request.body;
+      const ingredients = request.body.ingredients.split(",");
 
-            if (isNaN(priceNumber)) {
-                return response.status(400).json({ error: "Invalid price" });
-            }
+      const priceNumber = parseFloat(price);
+      if (isNaN(priceNumber)) {
+        return response.status(400).json({ error: "Invalid price" });
+      }
 
-            const categoryExists = await knex("dish_categories").where({ id: category_id }).first();
+      const existingCategory = await categoryRepository.find(categoryId);
+      if (existingCategory == null) {
+        return response.status(400).json({ error: "Category not found" });
+      }
 
-            if (!categoryExists) {
-                return response.status(400).json({ error: "Category not found" });
-            }
+      let imageFileName = null;
+      if (request.file != null) {
+        imageFileName = await diskStorage.saveFile(request.file);
+      }
 
-            await knex(DishesTableName).insert({
-                name,
-                description,
-                price: priceNumber,
-                category_id,
-                created_at: new Date().toISOString()
-            });
+      const newDish = {
+        name: name,
+        description: description,
+        price: priceNumber,
+        categoryId: categoryId,
+        imageFileName: imageFileName,
+      };
 
-            const ingredientsData = ingredients.map(ingredient => ({
-                name: ingredient
-            }));
+      const dish = await dishRepository.create(newDish);
 
-            await knex("ingredients").insert(ingredientsData);
+      if (dish.id == null) {
+        return response.status(500).json({ error: "Dish not created" });
+      }
 
-            response.status(201).json({ message: "Dish successfully registered!" });
-        } catch (error) {
-            console.error(error);
-            response.status(500).json({ error: "Error registering dish" });
+      await ingredientRepository.create(dish.id, ingredients);
+
+      response.status(201).json({ message: "Dish successfully registered!" });
+    } catch (error) {
+      console.error(error);
+      response.status(500).json({ error: "Error registering dish" });
+    }
+  }
+
+  async update(request, response) {
+    const { name, description, price, categoryId } = request.body;
+    const id = request.params.id;
+    const newImageFile = request.file;
+    const ingredients = request.body.ingredients.split(",");
+
+    const diskStorage = new DiskStorage();
+
+    try {
+      const existingDish = await dishRepository.find(id);
+      if (!existingDish) {
+        throw new AppError("Dish not found");
+      }
+
+      const priceNumber = parseFloat(price);
+      if (isNaN(priceNumber)) {
+        return response.status(400).json({ error: "Invalid price" });
+      }
+
+      let imageName;
+
+      // If a new image is provided
+      if (newImageFile) {
+        // Delete the existing image if there is one
+        if (existingDish.dish_image) {
+          await diskStorage.deleteFile(existingDish.dish_image);
         }
+        // Save the new image and set the imageName to the new image's filename
+        await diskStorage.saveFile(newImageFile);
+        imageName = newImageFile.filename;
+      } else {
+        // If no new image is provided, keep the existing image
+        imageName = existingDish.dish_image;
+      }
+
+      const updateDish = {
+        name: name,
+        description: description,
+        price: priceNumber,
+        categoryId: categoryId,
+        imageName: imageName,
+        dishId: id,
+      };
+
+      await dishRepository.update(updateDish);
+      await ingredientRepository.delete(id);
+      await ingredientRepository.create(id, ingredients);
+
+      return response
+        .status(200)
+        .json({ message: "Dish updated successfully" });
+    } catch (error) {
+      console.error(error);
+      return response.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  async getOne(request, response) {
+    const id = request.params.id;
+    try {
+      const existingDish = await dishRepository.find(id);
+      if (!existingDish) {
+        throw new AppError("Dish not found");
+      }
+
+      const frontendDish = mapDishToFrontend(existingDish);
+
+      const ingredients = await ingredientRepository.getIngredientById(id);
+
+      const ingredientsNames = ingredients.map((ingredient) => ingredient.name);
+
+      return response.json({
+        ...frontendDish,
+        ingredients: ingredientsNames,
+      });
+    } catch (error) {
+      console.error("Error searching for dish:", error);
+      response.status(500).json({ error: "Error searching for dish" });
+    }
+  }
+
+  async getAll(request, response) {
+    try {
+      const dishes = await dishRepository.getAll();
+
+      const ingredients = await ingredientRepository.getAll();
+
+      const dishesWithIngredients = dishes.map((dish) => {
+        const frontendDish = mapDishToFrontend(dish);
+
+        const dishIngredients = ingredients
+          .filter((ingredient) => ingredient.dish_id === dish.id)
+          .map((ingredient) => ingredient.name);
+
+        return {
+          ...frontendDish,
+          ingredients: dishIngredients,
+        };
+      });
+
+      return response.json(dishesWithIngredients);
+    } catch (error) {
+      console.error("Error fetching dishes:", error);
+      return response.status(500).json({ error: "Error fetching dishes" });
+    }
+  }
+
+  async delete(request, response) {
+    const id = request.params.id;
+
+    try {
+      const result = await dishRepository.delete(id);
+
+      if (result === 0) {
+        return response.status(404).json({ error: "Dish not found" });
+      }
+
+      return response
+        .status(200)
+        .json({ message: "Dish successfully removed!" });
+    } catch (error) {
+      console.error("Error removing dish:", error);
+      return response.status(500).json({ error: "Error removing dish" });
+    }
+  }
+
+  async searchDishes(request, response) {
+    const searchTerm = request.query.q;
+    console.log("resposta", searchTerm);
+
+    if (!searchTerm) {
+      return response.status(400).json({ error: "Search term is required" });
     }
 
-    async update(request, response) {
-        const { name, description, price, category_id, ingredients } = request.body;
-        const { id } = request.params;
+    try {
+      const results = await dishRepository.searchDishes(searchTerm);
 
-        try {
-            const priceNumber = parseFloat(price);
+      if (results.length === 0) {
+        return res.status(200).json([]);
+      }
 
-            if (isNaN(priceNumber)) {
-                return response.status(400).json({ error: "Invalid price" });
-            }
-
-            const dishExists = await trx(DishesTableName).where({ id }).first();
-            if (!dishExists) {
-                return response.status(404).json({ error: "Dish not found" });
-            }
-
-            await knex.transaction(async trx => {
-                await trx(DishesTableName)
-                    .where({ id })
-                    .update({
-                        name,
-                        price: priceNumber,
-                        description,
-                        category_id,
-                        updated_at: new Date().toISOString()
-                    });
-
-                await trx("ingredients").where({ dish_id: id }).del();
-
-                const ingredientRecords = ingredients.map(ingredient => ({
-                    dish_id: id,
-                    name: ingredient
-                }));
-                await trx("ingredients").insert(ingredientRecords);
-            });
-
-            return response.status(200).json({ message: "Dish updated successfully" });
-
-        } catch (error) {
-            console.error(error);
-            return response.status(500).json({ error: "Internal server error" });
-        }
+      response.json(results);
+    } catch (error) {
+      console.error("Error searching for dish:", error);
+      response.status(500).json({ message: "Internal server error" });
     }
-
-    async getOne(request, response) {
-        const { id } = request.params;
-
-        try {
-            const dish = await knex(DishesTableName).where({ id }).first();
-
-            if (!dish) {
-                return response.status(404).json({ error: "Dish not found" });
-            }
-
-            const ingredients = await knex("ingredients")
-                .where({ dish_id: id })
-                .select("name");
-
-            return response.json({
-                ...dish,
-                ingredients
-            });
-        } catch (error) {
-            console.error('Error searching for dish:', error);
-            response.status(500).json({ error: "Error searching for dish" });
-        }
-    }
-
-    async getAll(request, response) {
-        try {
-            const dishes = await knex(DishesTableName)
-                .select('*');
-
-            const ingredients = await knex("ingredients")
-                .select('*');
-
-            const dishesWithIngredients = dishes.map(dish => {
-                const dishIngredients = ingredients.filter(ingredient => ingredient.dish_id === dish.id);
-                return {
-                    ...dish,
-                    ingredients: dishIngredients
-                };
-            });
-
-            return response.json(dishesWithIngredients);
-
-        } catch (error) {
-            console.error('Error fetching dishes:', error);
-            return response.status(500).json({ error: "Error fetching dishes" });
-        }
-    }
+  }
 }
 
 module.exports = DishesController;

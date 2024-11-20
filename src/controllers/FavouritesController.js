@@ -1,67 +1,72 @@
-const knex = require("../database/knex");
+const { DishRepository } = require("../repositories/DishRepository");
+const { FavouriteRepository } = require("../repositories/FavouriteRepository");
+const { mapDishToFrontend } = require("../utils/mappers/dish");
 
-const favouritesTableName = "favourites";
+const dishRepository = new DishRepository();
+const favouriteRepository = new FavouriteRepository();
 
 class IngredientsController {
+  async create(request, response) {
+    const { dishId } = request.body;
+    const userId = request.user.id;
 
-    async create(request, response) {
-        const { dish_id } = request.body;
-        const user_id = request.user.id;
+    try {
+      const dishExists = await dishRepository.find(dishId);
+      if (!dishExists) {
+        return response.status(404).json({ error: "Dish not found" });
+      }
 
-        try {
-            const dishExists = await knex("dishes").where({ id: dish_id }).first();
-            const userExists = await knex("users").where({ id: user_id }).first();
-
-            if (!dishExists) {
-                return response.status(404).json({ error: "Dish not found" });
-            }
-
-            if (!userExists) {
-                return response.status(404).json({ error: "User not found" });
-            }
-
-            const favouriteExists = await knex(favouritesTableName)
-                .where({ user_id, dish_id })
-                .first();
-
-            if (favouriteExists) {
-                return response.status(400).json({ error: "Dish is already in favorites" });
-            }
-
-            await knex(favouritesTableName).insert({
-                user_id,
-                dish_id
-            });
-
-            response.status(201).json({ message: "Dish successfully added to favorites!" });
-
-        } catch (error) {
-            console.error('Error adding dish to favorites:', error);
-            response.status(500).json({ error: "Error adding dish to favorites" });
-        }
+      await favouriteRepository.create(userId, dishId);
+      return response
+        .status(201)
+        .json({ message: "Dish successfully added to favorites!" });
+    } catch (error) {
+      console.error("Error adding dish to favorites:", error);
+      return response
+        .status(500)
+        .json({ error: "Error adding dish to favorites" });
     }
+  }
 
-    async delete(request, response) {
+  async getAll(request, response) {
+    try {
+      const userId = request.user.id;
+      const favourites = await favouriteRepository.getAll(userId);
 
-        const { dish_id } = request.body;
-        const user_id = request.user.id;
+      const favouritesWithDishes = favourites?.map((dish) => {
+        return mapDishToFrontend(dish);
+      });
 
-        try {
-            const result = await knex(favouritesTableName)
-                .where({ user_id, dish_id })
-                .del();
-
-            if (result === 0) {
-                return response.status(404).json({ error: "Favorite not found" });
-            }
-
-            return response.status(200).json({ message: "Dish successfully removed from favorites!" });
-
-        } catch (error) {
-            console.error('Error removing dish from favorites:', error);
-            return response.status(500).json({ error: "Error removing dish from favorites" });
-        }
+      response.json(favouritesWithDishes);
+    } catch (error) {
+      console.error("Error fetching favourites:", error);
+      response.status(500).json({ error: "Failed to fetch favourites" });
     }
+  }
+
+  async delete(request, response) {
+    const { dishId } = request.params;
+    const userId = request.user.id;
+
+    try {
+      const dishExists = await dishRepository.find(dishId);
+      if (!dishExists) {
+        return response.status(404).json({ error: "Dish not found" });
+      }
+
+      const result = await favouriteRepository.delete(userId, dishId);
+      if (result === 0) {
+        return response.status(404).json({ error: "Favorite not found" });
+      }
+
+      return response
+        .status(200)
+        .json({ message: "Favourite successfully removed!" });
+    } catch (error) {
+      console.error("Error removing favourite:", error);
+      return response.status(500).json({ error: "Error removing favourite" });
+    }
+  }
 }
 
 module.exports = IngredientsController;
